@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Digit Recognition</title>
+</head>
+<body>
+    <h1>Draw a digit and get a prediction</h1>
+    <canvas id="canvas" width="280" height="280" style="border:1px solid black;"></canvas>
+    <button onclick="predictDigit()">Predict</button>
+    <p id="result"></p>
+
+    <script>
+        let canvas = document.getElementById("canvas");
+        let ctx = canvas.getContext("2d");
+        ctx.fillStyle = "black";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.strokeStyle = "white";
+        ctx.lineWidth = 15;
+        let drawing = false;
+
+        canvas.addEventListener("mousedown", () => drawing = true);
+        canvas.addEventListener("mouseup", () => drawing = false);
+        canvas.addEventListener("mousemove", draw);
+
+        function draw(event) {
+            if (!drawing) return;
+            let rect = canvas.getBoundingClientRect();
+            let x = event.clientX - rect.left;
+            let y = event.clientY - rect.top;
+            ctx.lineTo(x, y);
+            ctx.stroke();
+        }
+
+        function predictDigit() {
+            let image = canvas.toDataURL("image/png");  // Convert canvas to image
+            let base64Image = image.split(",")[1];  // Get base64 string
+
+            fetch("http://127.0.0.1:5000/predict", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ image: base64Image })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.prediction !== undefined) {
+                    document.getElementById("result").innerText = "Predicted Digit: " + data.prediction;
+                } else {
+                    document.getElementById("result").innerText = "Error: " + data.error;
+                }
+            })
+            .catch(error => {
+                document.getElementById("result").innerText = "Error: " + error;
+            });
+        }
+    </script>
+</body>
+</html>
